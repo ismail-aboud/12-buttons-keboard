@@ -1,0 +1,209 @@
+
+;**********************************************************************
+;                                                                     *
+;    Filename:	    PIC16F877.asm                                     *
+;    Date:         01/11/2020                                         *
+;    File Version:    4                                               *
+;                                                                     *
+;    Author:   ISMAIL ABOUD                                           *
+;    Company:                                                         *
+;                                                                     * 
+;                                                                     *
+;**********************************************************************
+;                                                                     *
+;    Files Required: P16F877.INC                                      *
+;                                                                     *
+;**********************************************************************
+;                                                                     *
+;    Notes:         12 buttons keyboard                               *
+;                                                                     *
+;**********************************************************************
+
+
+	list      p=16F877             ; list directive to define processor
+	#include <p16F877.inc>         ; processor specific variable definitions
+
+	__CONFIG   _CP_OFF & _WDT_ON & _PWRTE_ON & _RC_OSC
+
+; '__CONFIG' directive is used to embed configuration data within .asm file.
+; The lables following the directive are located in the respective .inc file.
+; See respective data sheet for additional information on configuration word.
+
+; Introducing variables 
+w_temp EQU 0x0C
+status_temp EQU 0x0D
+decompt1 EQU 0x010
+decompt2 EQU 0x11
+chiff EQU 0x12
+
+org 0x000
+goto main 
+
+    org 0x04
+ 	movwf w_temp
+ 	movf STATUS,w 
+ 	movwf status_temp 
+ 
+	bsf PORTB,1
+	bcf PORTB,2
+	bcf PORTB,3
+	movlw 0xF0
+	andwf PORTB,w
+	btfss STATUS,Z
+	goto col1 ; touche appu sur C1
+	goto testC2 ; tester si c'est sur C2
+col1
+	btfsc PORTB,4
+	goto un
+	btfsc PORTB,5
+	goto quatre 
+	btfsc PORTB,6
+	goto sept
+	btfsc PORTB,7
+	goto etoile 
+	;inaccessible 
+testC2
+	bcf PORTB,1
+	bsf PORTB,2
+	bcf PORTB,3
+	movlw 0xF0
+	andwf PORTB,w
+	btfss STATUS,Z
+	goto col2
+	goto testC3
+col2
+	btfsc PORTB,4
+	goto deux 
+	btfsc PORTB,5
+	goto cinq
+	btfsc PORTB,6
+	goto huit 
+	btfsc PORTB,7
+	goto zero 
+	;inaccessible 
+testC3
+	bcf PORTB,1
+	bcf PORTB,2
+	bsf PORTB,3
+	movlw 0xF0
+	andwf PORTB,w
+	btfss STATUS,Z
+	goto col3
+	;inaccessible 
+col3
+	btfsc PORTB,4
+	goto trois 
+	btfsc PORTB,5
+	goto six 
+	btfsc PORTB,6
+	goto neuf 
+	btfsc PORTB,7
+	goto dieze
+	;inaccessible 
+un 
+	movlw 0x01
+	goto affich 
+quatre 
+	movlw 0x04
+	goto affich 
+sept 
+	movlw 0x07 
+	goto affich 
+etoile 
+	movlw 0x0E
+	goto affich 
+deux 
+	movlw 0x02
+	goto affich 
+cinq 
+	movlw 0x05
+	goto affich 
+huit 
+	movlw 0x08
+	goto affich 
+zero 
+	movlw 0x00
+	goto affich 
+trois 
+	movlw 0x03	
+	goto affich 
+six 
+	movlw 0x06
+	goto affich 
+neuf 
+	movlw 0x09
+	goto affich
+dieze 
+	movlw 0x0A
+	goto affich
+affich 
+	movwf chiff 
+	movlw 0xF0
+	andwf PORTA,f ; preserve the value of RA4 and keep RA3 & RA0 at 0
+	movf chiff,w
+	addwf PORTA,w
+	movf PORTB,w
+	bcf INTCON,RBIF
+	movlw d'14'
+	movwf PORTB ;reactivate the 3 colonnes 
+	movf status_temp,w
+	movwf STATUS
+	swapf w_temp,f	
+	swapf w_temp,w
+	retfie
+	
+main 
+	banksel TRISA 
+	clrf TRISA 
+	movlw 0xF0	
+	movwf TRISB
+	banksel PORTB
+	movf PORTB,w
+	bcf INTCON,RBIF
+	bsf INTCON,RBIE
+	bsf INTCON,GIE 
+	movlw d'14'
+	movwf PORTB
+	banksel PORTA
+	movlw d'15'
+	movwf PORTA
+repeat
+	btfss PORTA,4
+	goto make_a_1
+	bcf PORTA,4
+	call temp_1_s
+	goto repeat 
+make_a_1
+	bsf PORTA,4
+	call temp_1_s
+ 	goto repeat
+
+temp_1_s ; pour un quartz de 4MHz 
+
+	movlw d'248' 
+	movwf decompt1
+repeat1
+	nop 
+	decfsz decompt1,f
+	goto repeat1
+	nop 	
+	nop 
+	nop 
+	return 
+temp_1_s
+	movlw d'249'
+	movwf decompt2 
+repeat2
+	nop
+	call temp_1_ms
+	call temp_1_ms
+	call temp_1_ms
+	call temp_1_ms
+	decfsz decompt2,f
+goto repeat2
+	call temp_1_ms
+	call temp_1_ms
+	call temp_1_ms
+return
+	
+	END 
